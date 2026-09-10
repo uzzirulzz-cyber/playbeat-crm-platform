@@ -1,0 +1,227 @@
+// Lead Broadcasting & Communication Console - Prisma Schema
+// SQLite-backed models for leads, campaigns, messages, conversations, integrations.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  name      String
+  password  String
+  role      String    @default("VIEWER") // SUPER_ADMIN | ADMIN | CAMPAIGN_MANAGER | AGENT | VIEWER
+  active    Boolean   @default(true)
+  lastLogin DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([email])
+}
+
+model Lead {
+  id                String    @id @default(cuid())
+  businessName      String
+  contactPerson     String?
+  email             String?
+  whatsapp          String?
+  country           String?
+  state             String?
+  city              String?
+  category          String?
+  website           String?
+  source            String?
+  tags              String    @default("[]") // JSON array
+  status            String    @default("NEW")
+  score             Int       @default(0)
+  emailVerified     Boolean   @default(false)
+  whatsappAvailable Boolean   @default(false)
+  emailOptIn        Boolean   @default(false)
+  whatsappOptIn     Boolean   @default(false)
+  doNotContact      Boolean   @default(false)
+  lastContacted     DateTime?
+  lastReplied       DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([email])
+  @@index([whatsapp])
+  @@index([businessName])
+  @@index([city])
+  @@index([category])
+  @@index([status])
+  @@index([source])
+}
+
+model Segment {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  filters     String   @default("{}") // JSON filter spec
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  channel     String    // WHATSAPP | EMAIL | COMBINED
+  segmentId   String?
+  segmentName String?
+  subject     String?
+  message     String
+  templateId  String?
+  attachments String    @default("[]") // JSON array
+  scheduledAt DateTime?
+  status      String    @default("DRAFT") // DRAFT | SCHEDULED | QUEUED | RUNNING | PAUSED | COMPLETED | CANCELLED | FAILED
+  createdBy   String
+  createdByName String?
+  startedAt   DateTime?
+  completedAt DateTime?
+  stats       String    @default("{}") // JSON: { sent, delivered, read, failed, total }
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([channel])
+}
+
+model CampaignRecipient {
+  id          String    @id @default(cuid())
+  campaignId  String
+  leadId      String
+  leadName    String?
+  leadEmail   String?
+  leadPhone   String?
+  status      String    @default("QUEUED") // QUEUED | SENT | DELIVERED | READ | FAILED | REJECTED
+  messageId   String?
+  providerId  String?
+  error       String?
+  queuedAt    DateTime  @default(now())
+  sentAt      DateTime?
+  deliveredAt DateTime?
+  readAt      DateTime?
+  failedAt    DateTime?
+
+  @@index([campaignId])
+  @@index([leadId])
+  @@index([status])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  leadId      String?
+  conversationId String?
+  channel     String   // WHATSAPP | EMAIL
+  direction   String   // INBOUND | OUTBOUND
+  campaignId  String?
+  messageId   String?
+  subject     String?
+  body        String
+  providerId  String?
+  status      String   @default("PENDING") // PENDING | SENT | DELIVERED | READ | FAILED | REJECTED
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([leadId])
+  @@index([conversationId])
+  @@index([campaignId])
+  @@index([channel])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  leadId        String
+  leadName      String?
+  leadPhone     String?
+  leadEmail     String?
+  channel       String    // WHATSAPP | EMAIL
+  status        String    @default("ACTIVE") // ACTIVE | ARCHIVED
+  assignedTo    String?
+  unreadCount   Int       @default(0)
+  lastMessage   String?
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([status])
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  channel     String   // WHATSAPP | EMAIL
+  language    String   @default("en")
+  category    String   @default("MARKETING") // MARKETING | UTILITY | AUTHENTICATION
+  subject     String?
+  body        String
+  variables   String   @default("[]") // JSON array of variable names
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Suppression {
+  id        String   @id @default(cuid())
+  type      String   // EMAIL | WHATSAPP | GLOBAL
+  value     String   // email or phone
+  reason    String   // UNSUBSCRIBE | BOUNCE | COMPLAINT | MANUAL
+  createdAt DateTime @default(now())
+
+  @@unique([type, value])
+}
+
+model WebhookEvent {
+  id        String   @id @default(cuid())
+  provider  String   // WHATSAPP | EMAIL
+  eventId   String?
+  payload   String   // JSON
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([provider])
+  @@index([eventId])
+}
+
+model Integration {
+  id        String    @id @default(cuid())
+  provider  String    @unique // WHATSAPP | EMAIL
+  config    String    @default("{}") // JSON with masked secrets
+  status    String    @default("DISCONNECTED") // CONNECTED | DISCONNECTED | ERROR
+  lastSync  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userName  String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  category  String   // SYSTEM | WHATSAPP | EMAIL | NOTIFICATION
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
