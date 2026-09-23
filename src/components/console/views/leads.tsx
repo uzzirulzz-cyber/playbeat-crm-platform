@@ -30,6 +30,7 @@ export default function LeadsView() {
   const [editing, setEditing] = useState<any | null>(null)
   const [creating, setCreating] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [capiLead, setCapiLead] = useState<any | null>(null)
   const canManage = user && ['ADMIN','SUPER_ADMIN','CAMPAIGN_MANAGER','AGENT'].includes(user.role)
 
   async function load() {
@@ -178,12 +179,7 @@ export default function LeadsView() {
                     {canManage && (
                       <td className="px-3 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Fire Meta CAPI Lead event" onClick={async () => {
-                            try {
-                              const r = await api<any>(`/api/leads/${l.id}/fire-capi`, { method: 'POST' })
-                              toast.success(`CAPI Lead event fired (providerId: ${r.providerId || '—'})`)
-                            } catch (e: any) { toast.error(e.message) }
-                          }}><BarChart3 className="w-3.5 h-3.5 text-blue-600" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Fire Meta CAPI event" onClick={() => setCapiLead(l)}><BarChart3 className="w-3.5 h-3.5 text-blue-600" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(l)}><Pencil className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={async () => {
                             if (!confirm(`Delete lead "${l.businessName}"?`)) return
@@ -219,6 +215,10 @@ export default function LeadsView() {
 
       {importing && (
         <ImportDialog onClose={() => setImporting(false)} onDone={() => { setImporting(false); load() }} />
+      )}
+
+      {capiLead && (
+        <CapiEventDialog lead={capiLead} onClose={() => setCapiLead(null)} />
       )}
     </div>
   )
@@ -430,6 +430,215 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="bg-white rounded border border-zinc-200 px-2 py-1.5">
       <div className="text-[10px] text-zinc-500 uppercase">{label}</div>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
+    </div>
+  )
+}
+
+// ─── CAPI Event Dialog ───────────────────────────────────────────────────────
+// Lets user pick any of the 17 Meta standard events (or a custom event name),
+// fill in the event's object properties (content_ids, currency, value, etc.),
+// and fire it via POST /api/leads/{id}/fire-capi. Shows Meta's live response.
+function CapiEventDialog({ lead, onClose }: { lead: any; onClose: () => void }) {
+  const [standardEvents, setStandardEvents] = useState<any[]>([])
+  const [objectPropertiesCatalog, setObjectPropertiesCatalog] = useState<any[]>([])
+  const [eventName, setEventName] = useState('Lead')
+  const [customEventName, setCustomEventName] = useState('')
+  const [useCustomEvent, setUseCustomEvent] = useState(false)
+  const [objectProps, setObjectProps] = useState<Record<string, any>>({})
+  const [eventId, setEventId] = useState('')
+  const [sending, setSending] = useState(false)
+  const [response, setResponse] = useState<any>(null)
+
+  useEffect(() => {
+    api<{ standardEvents: any[]; objectProperties: any[] }>('/api/integrations/meta-capi').then((r) => {
+      setStandardEvents(r.standardEvents || [])
+      setObjectPropertiesCatalog(r.objectProperties || [])
+    }).catch(() => {})
+  }, [])
+
+  const selectedSpec = standardEvents.find((e) => e.name === eventName)
+  const finalEventName = useCustomEvent ? customEventName : eventName
+  const requiredProps = (selectedSpec?.objectProperties || []).filter((p: any) => p.required === 'required')
+  const optionalProps = (selectedSpec?.objectProperties || []).filter((p: any) => p.required === 'optional')
+
+  async function fire() {
+    setSending(true)
+    setResponse(null)
+    try {
+      const r = await api<any>(`/api/leads/${lead.id}/fire-capi`, {
+        method: 'POST',
+        body: JSON.stringify({
+          eventName: finalEventName,
+          eventId: eventId || undefined,
+          objectProperties: objectProps,
+        }),
+      })
+      setResponse({ ok: true, ...r })
+      toast.success(`${finalEventName} event fired — events_received: ${r.eventsReceived ?? 0}`)
+    } catch (e: any) {
+      setResponse({ ok: false, error: e.message })
+      toast.error(e.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto custom-scroll">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4 text-blue-600" />
+            Fire Meta CAPI Event
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Lead context */}
+        <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3 text-sm space-y-1">
+          <div className="font-medium">{lead.businessName}</div>
+          <div className="text-xs text-zinc-600 grid grid-cols-2 gap-1">
+            <div>Email: <span className="font-mono">{lead.email || '—'}</span></div>
+            <div>WhatsApp: <span className="font-mono">{lead.whatsapp || '—'}</span></div>
+            <div>City: {lead.city || '—'}</div>
+            <div>Country: {lead.country || '—'}</div>
+            <div>Status: {lead.status}</div>
+            <div>Score: {lead.score}</div>
+          </div>
+          <div className="text-[10px] text-zinc-500 pt-1">
+            PII (email, phone, name, city) will be SHA-256 hashed before sending to Meta.
+            lead_id will be set to the LeadPulse lead's numeric ID.
+          </div>
+        </div>
+
+        {/* Event selection */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="radio" checked={!useCustomEvent} onChange={() => setUseCustomEvent(false)} />
+              Standard event
+            </label>
+            <label className="flex items-center gap-1.5 text-sm">
+              <input type="radio" checked={useCustomEvent} onChange={() => setUseCustomEvent(true)} />
+              Custom event
+            </label>
+          </div>
+
+          {!useCustomEvent ? (
+            <div className="space-y-1">
+              <Label className="text-xs text-zinc-600">Event Name</Label>
+              <Select value={eventName} onValueChange={(v) => { setEventName(v); setObjectProps({}) }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {standardEvents.map((e) => (
+                    <SelectItem key={e.name} value={e.name}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedSpec && (
+                <div className="text-xs text-zinc-500 pt-1 space-y-0.5">
+                  <div>{selectedSpec.description}</div>
+                  {selectedSpec.promotedObjectCustomEventType && (
+                    <div>Promoted object custom_event_type: <code className="bg-zinc-100 px-1 rounded">{selectedSpec.promotedObjectCustomEventType}</code></div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Label className="text-xs text-zinc-600">Custom Event Name</Label>
+              <Input value={customEventName} onChange={(e) => setCustomEventName(e.target.value)} placeholder="e.g. MyCustomEvent" />
+              <div className="text-xs text-zinc-500">Custom events don't require specific object properties.</div>
+            </div>
+          )}
+
+          {/* Event ID (for deduplication) */}
+          <div className="space-y-1">
+            <Label className="text-xs text-zinc-600">Event ID (optional — for deduplication with Pixel)</Label>
+            <Input value={eventId} onChange={(e) => setEventId(e.target.value)} placeholder="e.g. order_12345" />
+            <div className="text-xs text-zinc-500">If you also fire the same event via Meta Pixel fbq('track', eventName, {}, eventID), pass the same eventID here so Meta deduplicates the two events.</div>
+          </div>
+
+          {/* Object properties */}
+          {!useCustomEvent && selectedSpec && (
+            <div className="space-y-3">
+              {requiredProps.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-red-600 uppercase">Required Properties</div>
+                  {requiredProps.map((p: any) => (
+                    <PropertyInput
+                      key={p.key}
+                      propKey={p.key}
+                      type={p.type}
+                      description={p.description}
+                      value={objectProps[p.key]}
+                      onChange={(v) => setObjectProps({ ...objectProps, [p.key]: v })}
+                    />
+                  ))}
+                </div>
+              )}
+              {optionalProps.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-zinc-500 uppercase">Optional Properties</div>
+                  {optionalProps.map((p: any) => (
+                    <PropertyInput
+                      key={p.key}
+                      propKey={p.key}
+                      type={p.type}
+                      description={p.description}
+                      value={objectProps[p.key]}
+                      onChange={(v) => setObjectProps({ ...objectProps, [p.key]: v })}
+                    />
+                  ))}
+                </div>
+              )}
+              {selectedSpec.objectProperties.length === 0 && (
+                <div className="text-xs text-zinc-500 italic">This event has no standard object properties.</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Fire button */}
+        <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100">
+          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button onClick={fire} disabled={sending || (useCustomEvent && !customEventName)}>
+            {sending ? 'Sending…' : `Fire ${finalEventName} event`}
+          </Button>
+        </div>
+
+        {/* Response */}
+        {response && (
+          <div className="rounded-md border border-zinc-200 bg-zinc-950 text-zinc-100 p-3 text-xs font-mono overflow-x-auto">
+            <div className="text-zinc-400 mb-1">{response.ok ? '✓ Meta response' : '✗ Error'}</div>
+            <pre className="whitespace-pre-wrap break-all">{JSON.stringify(response, null, 2)}</pre>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function PropertyInput({ propKey, type, description, value, onChange }: {
+  propKey: string
+  type: string
+  description: string
+  value: any
+  onChange: (v: any) => void
+}) {
+  const placeholder = type === 'string_currency' ? 'USD'
+    : type === 'array_of_objects' ? '[{"id":"ABC123","quantity":2}]'
+    : type === 'array_of_integers_or_strings' ? '["ABC123","XYZ789"]'
+    : type === 'boolean' ? 'true'
+    : ''
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-zinc-600 font-mono">{propKey} <span className="text-zinc-400 font-sans">({type})</span></Label>
+      <Input
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      <div className="text-[10px] text-zinc-500">{description}</div>
     </div>
   )
 }
