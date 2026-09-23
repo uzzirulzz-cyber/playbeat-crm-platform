@@ -4,12 +4,12 @@ import { getCurrentUser, writeAuditLog, hasRole, ROLES } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, forbiddenResponse, serverError } from '@/lib/http'
 import { buildCampaignRecipients } from '@/lib/campaign-worker'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.CAMPAIGN_MANAGER)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const campaign = await db.campaign.findUnique({ where: { id } })
     if (!campaign) return notFound('Campaign not found')
 

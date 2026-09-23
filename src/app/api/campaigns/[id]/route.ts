@@ -4,10 +4,10 @@ import { getCurrentUser, writeAuditLog, hasRole, ROLES } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, forbiddenResponse, serverError, parseJSON } from '@/lib/http'
 import { buildCampaignRecipients } from '@/lib/campaign-worker'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   const campaign = await db.campaign.findUnique({ where: { id } })
   if (!campaign) return notFound('Campaign not found')
   const recipients = await db.campaignRecipient.findMany({
@@ -25,12 +25,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.CAMPAIGN_MANAGER)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const update: any = {}
     for (const k of ['name','channel','segmentId','segmentName','subject','message','templateId']) {
@@ -53,11 +53,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.ADMIN)) return forbiddenResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   await db.campaignRecipient.deleteMany({ where: { campaignId: id } })
   await db.message.deleteMany({ where: { campaignId: id } })
   await db.campaign.delete({ where: { id } })
@@ -65,13 +65,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   return ok({ success: true })
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   // Used to start/pause/cancel via body.action
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.CAMPAIGN_MANAGER)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const action = String(body.action || '')
     const campaign = await db.campaign.findUnique({ where: { id } })

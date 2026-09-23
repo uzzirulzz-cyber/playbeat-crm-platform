@@ -3,11 +3,11 @@ import { db } from '@/lib/db'
 import { getCurrentUser } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, serverError } from '@/lib/http'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) return notFound('Conversation not found')
     const messages = await db.message.findMany({

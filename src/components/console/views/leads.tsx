@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Download, Plus, Upload, Filter, Pencil, Trash2, Search } from 'lucide-react'
+import { Download, Plus, Upload, Filter, Pencil, Trash2, Search, BarChart3 } from 'lucide-react'
 import { api, downloadBlob, fileToBase64 } from '@/lib/api-client'
 import { useConsole } from '@/lib/console-store'
 import { toast } from 'sonner'
@@ -178,6 +178,12 @@ export default function LeadsView() {
                     {canManage && (
                       <td className="px-3 py-2.5 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" title="Fire Meta CAPI Lead event" onClick={async () => {
+                            try {
+                              const r = await api<any>(`/api/leads/${l.id}/fire-capi`, { method: 'POST' })
+                              toast.success(`CAPI Lead event fired (providerId: ${r.providerId || '—'})`)
+                            } catch (e: any) { toast.error(e.message) }
+                          }}><BarChart3 className="w-3.5 h-3.5 text-blue-600" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditing(l)}><Pencil className="w-3.5 h-3.5" /></Button>
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={async () => {
                             if (!confirm(`Delete lead "${l.businessName}"?`)) return

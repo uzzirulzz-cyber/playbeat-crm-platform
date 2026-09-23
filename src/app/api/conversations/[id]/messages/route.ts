@@ -5,11 +5,11 @@ import { getCurrentUser, writeAuditLog } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, serverError } from '@/lib/http'
 import { sendWhatsAppMessage, sendEmailMessage } from '@/lib/providers'
 
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const conversation = await db.conversation.findUnique({ where: { id } })
     if (!conversation) return notFound('Conversation not found')

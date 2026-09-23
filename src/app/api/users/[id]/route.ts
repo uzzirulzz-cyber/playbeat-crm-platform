@@ -3,22 +3,22 @@ import { db } from '@/lib/db'
 import { getCurrentUser, writeAuditLog, hasRole, ROLES, hashPassword } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, forbiddenResponse, serverError } from '@/lib/http'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.ADMIN)) return forbiddenResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   const u = await db.user.findUnique({ where: { id } })
   if (!u) return notFound('User not found')
   return ok({ user: { ...u, password: undefined } })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.ADMIN)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const update: any = {}
     if (body.name !== undefined) update.name = String(body.name)
@@ -33,11 +33,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.SUPER_ADMIN)) return forbiddenResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   if (id === user.id) return Response.json({ error: 'Cannot delete self' }, { status: 400 })
   await db.user.delete({ where: { id } })
   await writeAuditLog({ user, action: 'USER_DELETE', entity: 'User', entityId: id, req })

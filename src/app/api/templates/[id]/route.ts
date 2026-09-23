@@ -3,21 +3,21 @@ import { db } from '@/lib/db'
 import { getCurrentUser, writeAuditLog, hasRole, ROLES } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, forbiddenResponse, serverError, parseJSON } from '@/lib/http'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   const tpl = await db.template.findUnique({ where: { id } })
   if (!tpl) return notFound('Template not found')
   return ok({ template: { ...tpl, variables: parseJSON<string[]>(tpl.variables, []) } })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.CAMPAIGN_MANAGER)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const update: any = {}
     for (const k of ['name','channel','language','category','subject','body','approved']) {
@@ -32,11 +32,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.ADMIN)) return forbiddenResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   await db.template.delete({ where: { id } })
   await writeAuditLog({ user, action: 'TEMPLATE_DELETE', entity: 'Template', entityId: id, req })
   return ok({ success: true })

@@ -4,10 +4,10 @@ import { getCurrentUser, writeAuditLog, hasRole, ROLES } from '@/lib/auth'
 import { ok, notFound, unauthorizedResponse, forbiddenResponse, serverError, parseJSON } from '@/lib/http'
 import { filterLeads } from '@/lib/campaign-worker'
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   const segment = await db.segment.findUnique({ where: { id } })
   if (!segment) return notFound('Segment not found')
   const filters = parseJSON(segment.filters, {})
@@ -19,12 +19,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.CAMPAIGN_MANAGER)) return forbiddenResponse()
   try {
-    const { id } = await params()
+    const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
     const body = await req.json()
     const seg = await db.segment.update({
       where: { id },
@@ -41,11 +41,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> | { id: string } }) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   if (!hasRole(user, ROLES.ADMIN)) return forbiddenResponse()
-  const { id } = await params()
+  const params: any = (ctx as any).params; const id = typeof params?.then === 'function' ? (await params).id : params.id
   await db.segment.delete({ where: { id } })
   await writeAuditLog({ user, action: 'SEGMENT_DELETE', entity: 'Segment', entityId: id, req })
   return ok({ success: true })

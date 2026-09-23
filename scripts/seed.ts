@@ -120,6 +120,7 @@ async function main() {
         { key: 'system.timezone', value: 'Asia/Karachi', category: 'SYSTEM' },
         { key: 'system.campaignLimit', value: '1000', category: 'SYSTEM' },
         { key: 'notification.emailOnError', value: 'true', category: 'NOTIFICATION' },
+        { key: 'meta_capi.autoFireOnConverted', value: 'true', category: 'META_CAPI' },
       ],
     })
   }
