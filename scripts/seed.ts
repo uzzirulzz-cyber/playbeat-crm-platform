@@ -6,19 +6,19 @@ import bcrypt from 'bcryptjs'
 const db = new PrismaClient()
 
 async function main() {
-  const adminEmail = 'admin@leadpulse.local'
+  const adminEmail = 'admin@playbeat.digital'
   let admin = await db.user.findUnique({ where: { email: adminEmail } })
   if (!admin) {
     admin = await db.user.create({
       data: {
         email: adminEmail,
-        name: 'Super Admin',
-        password: await bcrypt.hash('admin123', 10),
+        name: 'Playbeat Admin',
+        password: await bcrypt.hash('playbeat1122', 10),
         role: 'SUPER_ADMIN',
         active: true,
       },
     })
-    console.log('Created admin:', adminEmail, '/ admin123')
+    console.log('Created admin:', adminEmail, '/ playbeat1122')
   }
 
   const sampleLeads = [

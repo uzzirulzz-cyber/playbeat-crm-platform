@@ -11,8 +11,8 @@ import { useConsole } from '@/lib/console-store'
 
 export default function LoginView() {
   const setUser = useConsole((s) => s.setUser)
-  const [email, setEmail] = useState('admin@leadpulse.local')
-  const [password, setPassword] = useState('admin123')
+  const [email, setEmail] = useState('admin@playbeat.digital')
+  const [password, setPassword] = useState('playbeat1122')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
 
@@ -89,7 +89,7 @@ export default function LoginView() {
               </Button>
             </form>
             <div className="mt-4 p-3 rounded-md bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400 space-y-1">
-              <div className="font-mono">admin@leadpulse.local / admin123</div>
+              <div className="font-mono">admin@playbeat.digital / playbeat1122</div>
               <div>Default seeded credentials. Change password after first login.</div>
             </div>
           </CardContent>
