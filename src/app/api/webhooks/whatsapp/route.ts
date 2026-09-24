@@ -1,9 +1,23 @@
 // WhatsApp Cloud API webhook endpoint.
 // GET  → verify webhook with hub.verify_token / hub.challenge.
 // POST → receive status updates and inbound messages; idempotent via WebhookEvent log.
+//        Verifies X-Hub-Signature-256 header using App Secret when configured.
 import { NextRequest } from 'next/server'
+import { createHmac, timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
 import { verifyWhatsAppWebhookToken } from '@/lib/providers'
+import { parseJSON } from '@/lib/http'
+
+/** Get the WhatsApp App Secret from env or DB integration. */
+async function getWhatsAppAppSecret(): Promise<string | null> {
+  // Env var first
+  if (process.env.WHATSAPP_APP_SECRET) return process.env.WHATSAPP_APP_SECRET
+  // DB integration
+  const integration = await db.integration.findUnique({ where: { provider: 'WHATSAPP' } })
+  if (!integration) return null
+  const config = parseJSON<any>(integration.config, {})
+  return config.appSecret || null
+}
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
@@ -22,7 +36,47 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await req.json()
+    // Get the App Secret for signature verification (if configured)
+    const appSecret = await getWhatsAppAppSecret()
+
+    let payload: any
+
+    if (appSecret) {
+      // Clone the request so we can both verify the signature AND parse the body
+      const sig = req.headers.get('x-hub-signature-256')
+      if (!sig || !sig.startsWith('sha256=')) {
+        return new Response('Missing signature', { status: 403 })
+      }
+      const expected = sig.slice(7)
+      const rawBody = await req.text()
+      const computed = createHmac('sha256', appSecret).update(rawBody, 'utf8').digest('hex')
+      try {
+        const a = Buffer.from(expected, 'hex')
+        const b = Buffer.from(computed, 'hex')
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
+          // Log failed verification
+          await db.webhookEvent.create({
+            data: {
+              provider: 'WHATSAPP',
+              payload: JSON.stringify({ error: 'signature_verification_failed', expected, computed }),
+              processed: false,
+            },
+          }).catch(() => {})
+          return new Response('Invalid signature', { status: 403 })
+        }
+      } catch {
+        return new Response('Invalid signature format', { status: 403 })
+      }
+      // Parse the raw body we already read
+      try {
+        payload = JSON.parse(rawBody)
+      } catch {
+        return new Response('Invalid JSON', { status: 400 })
+      }
+    } else {
+      // No App Secret configured — skip signature verification (not recommended for production)
+      payload = await req.json()
+    }
 
     // Idempotency: dedupe on event_id if present
     let eventId: string | undefined
