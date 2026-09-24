@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Radio, ShieldCheck, Send, Mail } from 'lucide-react'
+import { ShieldCheck, Phone, MessageCircle, Users } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { useConsole } from '@/lib/console-store'
 
@@ -34,23 +34,25 @@ export default function LoginView() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 pb-gradient-charcoal">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-500/30">
-            <Send className="w-7 h-7 text-emerald-400" />
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl pb-gradient-purple shadow-lg shadow-purple-900/50">
+            <svg viewBox="0 0 24 24" className="w-9 h-9 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M3 5l2-2h4l1 4-2 2c1 3 3 5 6 6l2-2 4 1v4l-2 2c-11 0-17-6-17-17z"/>
+            </svg>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">LeadPulse</h1>
-            <p className="text-sm text-zinc-400">Lead Broadcasting & Communication Console</p>
+            <h1 className="text-3xl font-bold text-white tracking-tight">PlayBeat CRM</h1>
+            <p className="text-sm text-purple-300/80 mt-1">One workspace. Every customer conversation.</p>
           </div>
         </div>
 
-        <Card className="border-zinc-800 bg-zinc-900/80 backdrop-blur">
+        <Card className="border-purple-900/50 bg-zinc-900/70 backdrop-blur-xl">
           <CardHeader>
-            <CardTitle className="text-white">Sign in</CardTitle>
+            <CardTitle className="text-white">Sign in to your workspace</CardTitle>
             <CardDescription className="text-zinc-400">
-              Use your admin credentials to access the console.
+              Use your employee credentials to access the CRM.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,7 +65,7 @@ export default function LoginView() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="bg-zinc-950 border-zinc-800 text-white"
+                  className="bg-zinc-950 border-purple-900/50 text-white focus:border-purple-500"
                   required
                 />
               </div>
@@ -75,7 +77,7 @@ export default function LoginView() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  className="bg-zinc-950 border-zinc-800 text-white"
+                  className="bg-zinc-950 border-purple-900/50 text-white focus:border-purple-500"
                   required
                 />
               </div>
@@ -83,22 +85,23 @@ export default function LoginView() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold"
+                className="w-full pb-gradient-purple hover:opacity-90 text-white font-semibold border-0"
               >
                 {loading ? 'Signing in…' : 'Sign in'}
               </Button>
             </form>
-            <div className="mt-4 p-3 rounded-md bg-zinc-950/60 border border-zinc-800 text-xs text-zinc-400 space-y-1">
-              <div className="font-mono">admin@playbeat.digital / playbeat1122</div>
+            <div className="mt-4 p-3 rounded-md bg-zinc-950/60 border border-purple-900/30 text-xs text-zinc-400 space-y-1">
+              <div className="font-mono text-purple-300">admin@playbeat.digital / playbeat1122</div>
               <div>Default seeded credentials. Change password after first login.</div>
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex items-center justify-center gap-4 text-xs text-zinc-500">
-          <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5" /> JWT auth</div>
-          <div className="flex items-center gap-1.5"><Radio className="w-3.5 h-3.5" /> Role-based access</div>
-          <div className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Real SMTP/WhatsApp</div>
+        <div className="flex items-center justify-center gap-5 text-xs text-zinc-500">
+          <div className="flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5 text-purple-400" /> WhatsApp</div>
+          <div className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-purple-400" /> Phone Dialer</div>
+          <div className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-purple-400" /> CRM</div>
+          <div className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-purple-400" /> RBAC</div>
         </div>
       </div>
     </div>

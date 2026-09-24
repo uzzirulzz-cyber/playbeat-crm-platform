@@ -139,3 +139,60 @@
 .custom-scroll::-webkit-scrollbar-thumb:hover {
   background-color: rgba(120, 120, 120, 0.55);
 }
+
+/* PlayBeat brand palette */
+:root {
+  --pb-purple: #6d28d9;       /* deep purple */
+  --pb-purple-light: #8b5cf6;
+  --pb-purple-dark: #4c1d95;
+  --pb-charcoal: #1e1b2e;     /* dark charcoal with hint of purple */
+  --pb-charcoal-light: #2d2a40;
+  --pb-charcoal-deeper: #15131f;
+  --pb-cyan: #06b6d4;         /* subtle cyan accent */
+  --pb-cyan-light: #22d3ee;
+}
+
+.pb-gradient-purple {
+  background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+}
+.pb-gradient-charcoal {
+  background: linear-gradient(180deg, #1e1b2e 0%, #15131f 100%);
+}
+.pb-glass {
+  background: rgba(45, 42, 64, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Dialer keypad button */
+.pb-key {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(76, 29, 149, 0.4) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  transition: all 0.15s ease;
+}
+.pb-key:hover {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.7) 0%, rgba(76, 29, 149, 0.7) 100%);
+  border-color: rgba(139, 92, 246, 0.6);
+  transform: scale(1.03);
+}
+.pb-key:active {
+  transform: scale(0.97);
+}
+
+@keyframes pb-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.pb-pulse {
+  animation: pb-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pb-ring {
+  0%, 100% { transform: rotate(0); }
+  10%, 30% { transform: rotate(-15deg); }
+  20%, 40% { transform: rotate(15deg); }
+  50% { transform: rotate(0); }
+}
+.pb-ring {
+  animation: pb-ring 1.5s ease-in-out infinite;
+}

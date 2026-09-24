@@ -15,23 +15,23 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeadPulse — Lead Broadcasting & Communication Console",
-  description: "Unified console for lead management, WhatsApp + email broadcasting, and Meta Conversions API tracking.",
-  keywords: ["LeadPulse", "CRM", "WhatsApp Business", "Email Marketing", "Meta CAPI", "Lead Broadcasting"],
-  authors: [{ name: "LeadPulse" }],
+  title: "PlayBeat CRM — Communication Center",
+  description: "One workspace. Every customer conversation. WhatsApp, phone dialer, lead management, and CRM in one platform.",
+  keywords: ["PlayBeat", "CRM", "WhatsApp Business", "Phone Dialer", "Lead Management", "Communication Center"],
+  authors: [{ name: "PlayBeat" }],
   icons: {
     icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
   },
   openGraph: {
-    title: "LeadPulse — Lead Broadcasting Console",
-    description: "Unified console for lead management, WhatsApp + email broadcasting, and Meta Conversions API tracking.",
-    siteName: "LeadPulse",
+    title: "PlayBeat CRM — Communication Center",
+    description: "One workspace. Every customer conversation.",
+    siteName: "PlayBeat CRM",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "LeadPulse — Lead Broadcasting Console",
-    description: "Unified console for lead management, WhatsApp + email broadcasting, and Meta Conversions API tracking.",
+    title: "PlayBeat CRM — Communication Center",
+    description: "One workspace. Every customer conversation.",
   },
 };
 

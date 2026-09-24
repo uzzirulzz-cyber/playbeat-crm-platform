@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Send, Search, MessageCircle, ArrowLeft } from 'lucide-react'
+import { Send, Search, MessageCircle, ArrowLeft, Phone, Mail, UserCircle2, MapPin, Tag, Briefcase } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { useConsole } from '@/lib/console-store'
 import { toast } from 'sonner'
@@ -13,6 +13,7 @@ import { io } from 'socket.io-client'
 
 export default function WhatsAppView() {
   const conn = useConsole((s) => s.connectionStatus)
+  const { setView, setActiveLeadId } = useConsole()
   const [conversations, setConversations] = useState<any[]>([])
   const [active, setActive] = useState<any | null>(null)
   const [messages, setMessages] = useState<any[]>([])
@@ -20,6 +21,7 @@ export default function WhatsAppView() {
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [leadProfile, setLeadProfile] = useState<any | null>(null)
   const socketRef = useRef<any>(null)
 
   async function loadConversations() {
@@ -33,9 +35,14 @@ export default function WhatsAppView() {
 
   async function openConversation(c: any) {
     setActive(c)
+    setLeadProfile(null)
     try {
-      const r = await api<{ conversation: any; messages: any[] }>(`/api/conversations/${c.id}`)
+      const [r, leadR] = await Promise.all([
+        api<{ conversation: any; messages: any[] }>(`/api/conversations/${c.id}`),
+        c.leadId ? api<{ lead: any }>(`/api/leads/${c.leadId}`) : Promise.resolve(null),
+      ])
       setMessages(r.messages || [])
+      if (leadR?.lead) setLeadProfile(leadR.lead)
     } catch (e: any) { toast.error(e.message) }
   }
 
@@ -205,6 +212,68 @@ export default function WhatsAppView() {
           </div>
         )}
       </div>
+
+      {/* Right - customer profile panel (desktop only) */}
+      {active && leadProfile && (
+        <div className="hidden xl:flex w-80 shrink-0 border-l border-zinc-200 bg-white flex-col">
+          <div className="p-4 border-b border-zinc-200">
+            <div className="text-xs text-zinc-500 uppercase mb-2">Customer</div>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-12 h-12 rounded-full pb-gradient-purple flex items-center justify-center text-white font-semibold">
+                {(leadProfile.businessName || '?').charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <div className="font-medium text-sm truncate">{leadProfile.businessName}</div>
+                {leadProfile.contactPerson && <div className="text-xs text-zinc-500 truncate">{leadProfile.contactPerson}</div>}
+              </div>
+            </div>
+            <div className="flex gap-1.5 mb-2">
+              <Badge variant="outline" className="text-[10px]">{leadProfile.status.replace(/_/g, ' ').toLowerCase()}</Badge>
+              <Badge variant="outline" className="text-[10px]">Score: {leadProfile.score}</Badge>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <Button variant="outline" size="sm" className="flex flex-col items-center py-2 h-auto" onClick={() => setView('dialer')}>
+                <Phone className="w-3.5 h-3.5 mb-0.5" />
+                <span className="text-[9px]">Call</span>
+              </Button>
+              <Button variant="outline" size="sm" className="flex flex-col items-center py-2 h-auto" onClick={() => setView('whatsapp')}>
+                <MessageCircle className="w-3.5 h-3.5 mb-0.5" />
+                <span className="text-[9px]">Chat</span>
+              </Button>
+              <Button variant="outline" size="sm" className="flex flex-col items-center py-2 h-auto" onClick={() => { setActiveLeadId(leadProfile.id); setView('customers') }}>
+                <UserCircle2 className="w-3.5 h-3.5 mb-0.5" />
+                <span className="text-[9px]">CRM</span>
+              </Button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto custom-scroll p-4 space-y-3 text-sm">
+            {leadProfile.whatsapp && <InfoRow icon={Phone} label="WhatsApp" value={leadProfile.whatsapp} />}
+            {leadProfile.email && <InfoRow icon={Mail} label="Email" value={leadProfile.email} />}
+            {leadProfile.city && <InfoRow icon={MapPin} label="Location" value={[leadProfile.city, leadProfile.country].filter(Boolean).join(', ')} />}
+            {leadProfile.industry && <InfoRow icon={Briefcase} label="Industry" value={leadProfile.industry} />}
+            {leadProfile.source && <InfoRow icon={Tag} label="Source" value={leadProfile.source} />}
+            {leadProfile.assignedToName && <InfoRow icon={UserCircle2} label="Assigned" value={leadProfile.assignedToName} />}
+            {leadProfile.tags && leadProfile.tags.length > 0 && (
+              <div>
+                <div className="text-xs text-zinc-500 mb-1.5">Tags</div>
+                <div className="flex flex-wrap gap-1">
+                  {leadProfile.tags.map((t: string) => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value }: any) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+      <span className="text-xs text-zinc-500 w-20 shrink-0">{label}</span>
+      <span className="text-sm flex-1 truncate">{value}</span>
     </div>
   )
 }

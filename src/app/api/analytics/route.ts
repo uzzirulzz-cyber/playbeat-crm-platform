@@ -8,6 +8,11 @@ export async function GET(req: NextRequest) {
   const user = await getCurrentUser(req)
   if (!user) return unauthorizedResponse()
   try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
     const [
       totalLeads,
       emailLeads,
@@ -23,6 +28,17 @@ export async function GET(req: NextRequest) {
       inboundMessages,
       unsubscribes,
       conversations,
+      activeConversations,
+      // Communication-specific
+      callsToday,
+      messagesToday,
+      missedCalls,
+      newLeadsToday,
+      followupsDueToday,
+      totalCalls,
+      totalCallsCompleted,
+      totalCallDurationSec,
+      activeEmployees,
     ] = await Promise.all([
       db.lead.count(),
       db.lead.count({ where: { email: { not: null } } }),
@@ -38,6 +54,17 @@ export async function GET(req: NextRequest) {
       db.message.count({ where: { direction: 'INBOUND' } }),
       db.suppression.count(),
       db.conversation.count(),
+      db.conversation.count({ where: { status: 'ACTIVE' } }),
+      // Communication
+      db.call.count({ where: { startedAt: { gte: today, lt: tomorrow } } }),
+      db.message.count({ where: { createdAt: { gte: today, lt: tomorrow } } }),
+      db.call.count({ where: { status: 'MISSED' } }),
+      db.lead.count({ where: { createdAt: { gte: today, lt: tomorrow } } }),
+      db.followup.count({ where: { status: 'SCHEDULED', scheduledAt: { gte: today, lt: tomorrow } } }),
+      db.call.count(),
+      db.call.count({ where: { status: 'ENDED' } }),
+      db.call.aggregate({ _sum: { durationSec: true } }),
+      db.user.count({ where: { availability: 'ONLINE' } }),
     ])
 
     const leadsByCity = await db.lead.groupBy({ by: ['city'], _count: { _all: true }, orderBy: { _count: { city: 'desc' } }, take: 10 })
@@ -58,16 +85,29 @@ export async function GET(req: NextRequest) {
     }))
 
     // Messages over time (last 7 days, by day)
-    const days: { date: string; count: number }[] = []
+    const days: { date: string; count: number; calls: number; messages: number }[] = []
     for (let i = 6; i >= 0; i--) {
       const start = new Date()
       start.setHours(0, 0, 0, 0)
       start.setDate(start.getDate() - i)
       const end = new Date(start)
       end.setDate(end.getDate() + 1)
-      const count = await db.message.count({ where: { createdAt: { gte: start, lt: end } } })
-      days.push({ date: start.toISOString().slice(0, 10), count })
+      const [msgCount, callCount] = await Promise.all([
+        db.message.count({ where: { createdAt: { gte: start, lt: end } } }),
+        db.call.count({ where: { startedAt: { gte: start, lt: end } } }),
+      ])
+      days.push({
+        date: start.toISOString().slice(0, 10),
+        count: msgCount + callCount,
+        calls: callCount,
+        messages: msgCount,
+      })
     }
+
+    // Calls by outcome
+    const callsByOutcome = await db.call.groupBy({ by: ['outcome'], _count: { _all: true } })
+    // Calls by direction
+    const callsByDirection = await db.call.groupBy({ by: ['direction'], _count: { _all: true } })
 
     return ok({
       totals: {
@@ -85,12 +125,25 @@ export async function GET(req: NextRequest) {
         inboundMessages,
         unsubscribes,
         conversations,
+        activeConversations,
+        // Communication
+        callsToday,
+        messagesToday,
+        missedCalls,
+        newLeadsToday,
+        followupsDueToday,
+        totalCalls,
+        totalCallsCompleted,
+        totalCallDurationSec: totalCallDurationSec._sum.durationSec || 0,
+        activeEmployees,
       },
       charts: {
         leadsByCity: leadsByCity.map((l) => ({ label: l.city || 'Unknown', value: l._count._all })),
         leadsByCategory: leadsByCategory.map((l) => ({ label: l.category || 'Unknown', value: l._count._all })),
         leadsByStatus: leadsByStatus.map((l) => ({ label: l.status, value: l._count._all })),
         messagesOverTime: days,
+        callsByOutcome: callsByOutcome.map((c) => ({ label: c.outcome || 'Pending', value: c._count._all })),
+        callsByDirection: callsByDirection.map((c) => ({ label: c.direction, value: c._count._all })),
       },
       campaigns,
     })

@@ -82,10 +82,12 @@ export async function POST(req: NextRequest) {
         contactPerson: body.contactPerson || null,
         email,
         whatsapp,
+        phone: body.phone || null,
         country: body.country || null,
         state: body.state || null,
         city: body.city || null,
         category: body.category || null,
+        industry: body.industry || null,
         website: body.website || null,
         source: body.source || 'Manual',
         tags: JSON.stringify(body.tags || []),
@@ -97,6 +99,9 @@ export async function POST(req: NextRequest) {
         doNotContact: body.doNotContact ?? false,
         notes: body.notes || null,
         status: body.status || 'NEW',
+        assignedTo: body.assignedTo || null,
+        assignedToName: body.assignedToName || null,
+        assignedAt: body.assignedTo ? new Date() : null,
       },
     })
 

@@ -5,6 +5,7 @@ import { getCurrentUser, writeAuditLog, hasRole, ROLES } from '@/lib/auth'
 import { ok, badRequest, unauthorizedResponse, forbiddenResponse, serverError, parseJSON } from '@/lib/http'
 import { getIntegrationStatus, maskSecret } from '@/lib/providers'
 import { getMetaCAPIStatus } from '@/lib/meta-capi'
+import { getTelephonyStatus } from '@/lib/telephony'
 
 export async function GET(req: NextRequest) {
   const user = await getCurrentUser(req)
@@ -13,16 +14,22 @@ export async function GET(req: NextRequest) {
     const rows = await db.integration.findMany()
     // Build virtual rows for all providers regardless of presence in DB
     const result = []
-    for (const provider of ['WHATSAPP', 'EMAIL', 'META_CAPI']) {
+    for (const provider of ['WHATSAPP', 'EMAIL', 'META_CAPI', 'TELEPHONY']) {
       const row = rows.find((r) => r.provider === provider)
-      const status = provider === 'META_CAPI'
-        ? await getMetaCAPIStatus()
-        : await getIntegrationStatus(provider as any)
+      let status: 'CONNECTED' | 'DISCONNECTED'
+      if (provider === 'META_CAPI') {
+        status = await getMetaCAPIStatus()
+      } else if (provider === 'TELEPHONY') {
+        const t = await getTelephonyStatus()
+        status = t.connected ? 'CONNECTED' : 'DISCONNECTED'
+      } else {
+        status = await getIntegrationStatus(provider as any)
+      }
       const config = row ? parseJSON(row.config, {}) : {}
       // Mask secrets in response
       const masked: any = {}
       for (const [k, v] of Object.entries(config)) {
-        if (/token|password|secret/i.test(k)) masked[k] = maskSecret(v as string)
+        if (/token|password|secret|sid/i.test(k)) masked[k] = maskSecret(v as string)
         else masked[k] = v
       }
       result.push({
@@ -47,7 +54,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const provider = String(body.provider || '').toUpperCase()
-    if (!['WHATSAPP', 'EMAIL', 'META_CAPI'].includes(provider)) return badRequest('Invalid provider')
+    if (!['WHATSAPP', 'EMAIL', 'META_CAPI', 'TELEPHONY'].includes(provider)) return badRequest('Invalid provider')
 
     const incoming = body.config || {}
     // Merge with existing config so masked secrets can be preserved

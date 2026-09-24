@@ -26,13 +26,19 @@ export async function PUT(req: NextRequest, ctx: { params: Promise<{ id: string 
     if (!existing) return notFound('Lead not found')
 
     const update: any = {}
-    for (const k of ['businessName','contactPerson','email','whatsapp','country','state','city','category','website','source','notes','status']) {
+    for (const k of ['businessName','contactPerson','email','whatsapp','phone','country','state','city','category','industry','website','source','notes','status']) {
       if (body[k] !== undefined) update[k] = body[k]
     }
     if (body.tags !== undefined) update.tags = JSON.stringify(body.tags)
     if (body.score !== undefined) update.score = Number(body.score)
     for (const k of ['emailVerified','whatsappAvailable','emailOptIn','whatsappOptIn','doNotContact']) {
       if (body[k] !== undefined) update[k] = !!body[k]
+    }
+    // CRM assignment
+    if (body.assignedTo !== undefined) {
+      update.assignedTo = body.assignedTo || null
+      update.assignedToName = body.assignedToName || null
+      update.assignedAt = body.assignedTo ? new Date() : null
     }
     update.updatedAt = new Date()
 
