@@ -359,3 +359,166 @@ model PhoneNumber {
   @@index([provider])
   @@index([active])
 }
+
+// ─── PlayBeat Digital Commerce models ───────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  icon        String?
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([slug])
+  @@index([active])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  longDescription String?
+  categoryId    String?
+  categoryName  String?
+  price         Float
+  salePrice     Float?
+  cost          Float?
+  currency      String   @default("PKR")
+  type          String   @default("DIGITAL") // DIGITAL | SUBSCRIPTION | GIFT_CARD | SOFTWARE | GAMING | HARDWARE | SERVICE
+  deliveryType  String   @default("INSTANT") // INSTANT | MANUAL | PHYSICAL
+  stock         Int      @default(0)
+  unlimited     Boolean  @default(false)
+  licenseSource String?  // supplier/source for digital licenses
+  images        String   @default("[]") // JSON array of URLs
+  variants      String   @default("[]") // JSON array
+  status        String   @default("ACTIVE") // ACTIVE | DRAFT | ARCHIVED
+  featured      Boolean  @default(false)
+  visibility    String   @default("PUBLIC") // PUBLIC | HIDDEN
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([featured])
+  @@index([type])
+}
+
+model Order {
+  id              String    @id @default(cuid())
+  orderNumber     String    @unique
+  customerId      String?   // Lead ID (customers are stored as Lead records)
+  customerName    String?
+  customerEmail   String?
+  customerPhone   String?
+  customerWhatsapp String?
+  items           String    @default("[]") // JSON array of {productId, name, price, qty, type}
+  subtotal        Float     @default(0)
+  discount        Float     @default(0)
+  tax             Float     @default(0)
+  shipping        Float     @default(0)
+  total           Float     @default(0)
+  currency        String    @default("PKR")
+  paymentMethod   String?   // CARD | EASYPAISA | JAZZCASH | BANK | CRYPTO
+  paymentStatus   String    @default("PENDING") // PENDING | AUTHORIZED | PAID | FAILED | REFUNDED
+  fulfillmentStatus String  @default("NEW") // NEW | PROCESSING | FULFILLED | COMPLETED | CANCELLED | REFUNDED
+  notes           String?
+  source          String    @default("STOREFRONT") // STOREFRONT | CRM | ADMIN
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([orderNumber])
+  @@index([paymentStatus])
+  @@index([fulfillmentStatus])
+  @@index([createdAt])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  orderId         String
+  orderNumber     String?
+  amount          Float
+  currency        String   @default("PKR")
+  method          String   // CARD | EASYPAISA | JAZZCASH | BANK | CRYPTO
+  status          String   @default("PENDING") // PENDING | AUTHORIZED | PAID | FAILED | REFUNDED
+  provider        String?  // stripe | easypaisa | jazzcash | etc.
+  providerTxnId   String?
+  providerResponse String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
+  @@index([providerTxnId])
+}
+
+model License {
+  id              String   @id @default(cuid())
+  productId       String
+  productName     String?
+  licenseKey      String
+  licenseData     String?  // JSON: additional fields like expiry, seats, etc.
+  supplier        String?
+  status          String   @default("AVAILABLE") // AVAILABLE | RESERVED | DELIVERED | ACTIVATED | EXPIRED | REVOKED
+  orderId         String?  // order that consumed this license
+  customerId      String?  // customer who received this license
+  deliveredAt     DateTime?
+  activatedAt     DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([productId])
+  @@index([status])
+  @@index([orderId])
+  @@index([customerId])
+}
+
+// ─── PlayBeat Digital Commerce models (additions) ───────────────────────────
+// Category, Product, Order, Payment, License models already exist above.
+// Adding Subscription and Discount models.
+
+model Subscription {
+  id              String    @id @default(cuid())
+  customerId      String?
+  customerEmail   String?
+  productId       String?
+  productName     String?
+  plan            String?   // MONTHLY | YEARLY | LIFETIME
+  status          String    @default("ACTIVE") // ACTIVE | SUSPENDED | CANCELLED | EXPIRED
+  startedAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  autoRenew       Boolean   @default(false)
+  orderId         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+}
+
+model Discount {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  description     String?
+  type            String    @default("PERCENTAGE") // PERCENTAGE | FIXED
+  value           Float
+  minOrder        Float?
+  maxDiscount     Float?
+  usageLimit      Int?
+  usageCount      Int       @default(0)
+  active          Boolean   @default(true)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([active])
+}

@@ -35,10 +35,13 @@ interface User {
 
 interface ConsoleState {
   user: User | null
+  appMode: 'storefront' | 'crm' | 'admin'
   view: ViewKey
   activeLeadId: string | null
   activeConversationId: string | null
   activeCallId: string | null
+  // Storefront state
+  cart: any[]
   connectionStatus: {
     whatsapp: 'CONNECTED' | 'DISCONNECTED'
     email: 'CONNECTED' | 'DISCONNECTED'
@@ -47,12 +50,16 @@ interface ConsoleState {
   }
   availability: 'ONLINE' | 'AWAY' | 'BUSY' | 'OFFLINE'
   setUser: (u: User | null) => void
+  setAppMode: (m: 'storefront' | 'crm' | 'admin') => void
   setView: (v: ViewKey) => void
   setActiveLeadId: (id: string | null) => void
   setActiveConversationId: (id: string | null) => void
   setActiveCallId: (id: string | null) => void
   setConnectionStatus: (s: Partial<ConsoleState['connectionStatus']>) => void
   setAvailability: (a: ConsoleState['availability']) => void
+  addToCart: (product: any) => void
+  removeFromCart: (productId: string) => void
+  clearCart: () => void
   logout: () => void
 }
 
@@ -60,10 +67,12 @@ export const useConsole = create<ConsoleState>()(
   persist(
     (set) => ({
       user: null,
+      appMode: 'storefront',
       view: 'dashboard',
       activeLeadId: null,
       activeConversationId: null,
       activeCallId: null,
+      cart: [],
       connectionStatus: {
         whatsapp: 'DISCONNECTED',
         email: 'DISCONNECTED',
@@ -72,13 +81,23 @@ export const useConsole = create<ConsoleState>()(
       },
       availability: 'ONLINE',
       setUser: (u) => set({ user: u }),
+      setAppMode: (m) => set({ appMode: m }),
       setView: (v) => set({ view: v }),
       setActiveLeadId: (id) => set({ activeLeadId: id }),
       setActiveConversationId: (id) => set({ activeConversationId: id }),
       setActiveCallId: (id) => set({ activeCallId: id }),
       setConnectionStatus: (s) => set((st) => ({ connectionStatus: { ...st.connectionStatus, ...s } })),
       setAvailability: (a) => set({ availability: a }),
-      logout: () => set({ user: null }),
+      addToCart: (product) => set((st) => {
+        const existing = st.cart.find((c) => c.productId === product.id)
+        if (existing) {
+          return { cart: st.cart.map((c) => c.productId === product.id ? { ...c, qty: c.qty + 1 } : c) }
+        }
+        return { cart: [...st.cart, { productId: product.id, name: product.name, price: product.salePrice || product.price, qty: 1, type: product.type, deliveryType: product.deliveryType }] }
+      }),
+      removeFromCart: (productId) => set((st) => ({ cart: st.cart.filter((c) => c.productId !== productId) })),
+      clearCart: () => set({ cart: [] }),
+      logout: () => set({ user: null, appMode: 'storefront' }),
     }),
     {
       name: 'playbeat-crm',
@@ -87,7 +106,7 @@ export const useConsole = create<ConsoleState>()(
         setItem: () => undefined,
         removeItem: () => undefined,
       } as any)),
-      partialize: (s) => ({ user: s.user, view: s.view, availability: s.availability }),
+      partialize: (s) => ({ user: s.user, appMode: s.appMode, view: s.view, availability: s.availability, cart: s.cart }),
     }
   )
 )

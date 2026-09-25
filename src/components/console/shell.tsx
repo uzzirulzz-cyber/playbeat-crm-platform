@@ -6,7 +6,7 @@ import {
   CheckSquare, CalendarClock, FileText, Megaphone, BarChart3, IdCard,
   FolderTree, ShieldX, Plug, UserCog, History, Settings as SettingsIcon,
   Search, Bell, LogOut, Send, ChevronLeft, ChevronRight, Wifi, WifiOff,
-  MoreHorizontal, CircleDot, Menu, X
+  MoreHorizontal, CircleDot, Menu, X, Store
 } from 'lucide-react'
 import { useConsole, type ViewKey, hasMinRole } from '@/lib/console-store'
 import { api } from '@/lib/api-client'
@@ -79,7 +79,7 @@ const NAV: NavItem[] = [
 const MOBILE_NAV: ViewKey[] = ['inbox', 'calls', 'dialer', 'leads', 'dashboard']
 
 export default function ConsoleShell() {
-  const { user, view, setView, setUser, connectionStatus, setConnectionStatus, availability, setAvailability, logout } = useConsole()
+  const { user, view, setView, setUser, connectionStatus, setConnectionStatus, availability, setAvailability, logout, setAppMode } = useConsole()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
@@ -241,6 +241,27 @@ export default function ConsoleShell() {
           <NavGroup items={groupedNav.crm} label="CRM" collapsed={collapsed} view={view} setView={setView} />
           <NavGroup items={groupedNav.system} label="System" collapsed={collapsed} view={view} setView={setView} />
         </nav>
+
+        {/* App switcher */}
+        <div className="border-t border-purple-900/30 p-2 space-y-1">
+          <button
+            onClick={() => setAppMode('storefront')}
+            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-zinc-300 hover:bg-purple-900/20 hover:text-white transition-colors',
+              collapsed && 'justify-center')}
+          >
+            <Store className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Storefront</span>}
+          </button>
+          <button
+            onClick={() => setAppMode('admin')}
+            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-zinc-300 hover:bg-purple-900/20 hover:text-white transition-colors',
+              collapsed && 'justify-center')}
+            style={{ display: user && ['ADMIN','SUPER_ADMIN'].includes(user.role) ? 'flex' : 'none' }}
+          >
+            <BarChart3 className="w-4 h-4 shrink-0" />
+            {!collapsed && <span>Admin</span>}
+          </button>
+        </div>
 
         {/* Connection status */}
         {!collapsed && (
