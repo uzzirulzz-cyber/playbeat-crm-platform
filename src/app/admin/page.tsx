@@ -57,19 +57,19 @@ export default function AdminPage() {
   ]
 
   return (
-    <div className="flex h-screen bg-zinc-50">
-      {/* Sidebar */}
-      <aside className="w-60 shrink-0 flex flex-col bg-zinc-900 text-zinc-200 border-r border-zinc-800">
-        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-zinc-800">
-          <div className="w-8 h-8 rounded-lg pb-gradient-purple flex items-center justify-center shrink-0">
-            <BarChart3 className="w-4 h-4 text-white" />
+    <div className="flex h-screen bg-cloud">
+      {/* Sidebar — enterprise navy */}
+      <aside className="w-60 shrink-0 flex flex-col bg-navy text-silver border-r border-navy-light">
+        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-navy-light">
+          <div className="w-8 h-8 rounded-lg bg-gold flex items-center justify-center shrink-0">
+            <BarChart3 className="w-4 h-4 text-navy" />
           </div>
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-white">PlayBeat Admin</span>
-            <span className="text-[10px] text-zinc-400 -mt-0.5">Control Center</span>
+            <span className="text-[10px] text-silver-dark -mt-0.5">Control Center</span>
           </div>
         </div>
-        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
+        <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5 custom-scroll">
           {nav.map((n) => {
             const Icon = n.icon
             return (
@@ -77,7 +77,7 @@ export default function AdminPage() {
                 key={n.key}
                 onClick={() => setView(n.key)}
                 className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
-                  view === n.key ? 'bg-purple-600 text-white' : 'text-zinc-300 hover:bg-zinc-800')}
+                  view === n.key ? 'bg-gold text-navy font-semibold' : 'text-silver hover:bg-navy-light hover:text-white')}
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 <span>{n.label}</span>
@@ -85,14 +85,14 @@ export default function AdminPage() {
             )
           })}
         </nav>
-        <div className="border-t border-zinc-800 p-3 space-y-1">
-          <Link href="/" className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white px-2 py-1.5">
+        <div className="border-t border-navy-light p-3 space-y-1">
+          <Link href="/" className="flex items-center gap-2 text-xs text-silver-dark hover:text-white px-2 py-1.5">
             <ArrowLeft className="w-3 h-3" /> Back to Home
           </Link>
-          <Link href="/crm" className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white px-2 py-1.5">
+          <Link href="/crm" className="flex items-center gap-2 text-xs text-silver-dark hover:text-white px-2 py-1.5">
             <Users className="w-3 h-3" /> Open CRM
           </Link>
-          <Link href="/storefront" className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white px-2 py-1.5">
+          <Link href="/storefront" className="flex items-center gap-2 text-xs text-silver-dark hover:text-white px-2 py-1.5">
             <Package className="w-3 h-3" /> View Storefront
           </Link>
         </div>

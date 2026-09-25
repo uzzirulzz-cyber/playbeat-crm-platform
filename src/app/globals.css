@@ -118,9 +118,168 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   PLAYBEAT DIGITAL — Enterprise Design System
+   Tokens: Navy #0B1220 | Slate #111827 | Gold #F4C542 | Silver #CBD5E1 | Cloud #F8FAFC
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Enterprise palette */
+  --pb-navy: #0B1220;
+  --pb-navy-light: #1a2332;
+  --pb-slate: #111827;
+  --pb-slate-light: #1e293b;
+  --pb-gold: #F4C542;
+  --pb-gold-light: #FFD968;
+  --pb-gold-dark: #D4A532;
+  --pb-silver: #CBD5E1;
+  --pb-silver-light: #E2E8F0;
+  --pb-silver-dark: #94A3B8;
+  --pb-cloud: #F8FAFC;
+  --pb-cloud-dark: #F1F5F9;
+}
+
+/* Premium wordmark */
+.pb-wordmark {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  color: var(--pb-navy);
+  line-height: 1;
+}
+.pb-wordmark .dot {
+  color: var(--pb-gold);
+}
+
+/* Gold CTA — used SPARINGLY, only for primary actions */
+.pb-cta-gold {
+  background: var(--pb-gold);
+  color: var(--pb-navy);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(244, 197, 66, 0.3);
+}
+.pb-cta-gold:hover {
+  background: var(--pb-gold-light);
+  box-shadow: 0 6px 20px rgba(244, 197, 66, 0.4);
+  transform: translateY(-1px);
+}
+.pb-cta-gold:active {
+  transform: translateY(0);
+}
+
+/* Navy surfaces */
+.pb-navy-surface {
+  background: var(--pb-navy);
+  color: var(--pb-silver);
+}
+.pb-slate-surface {
+  background: var(--pb-slate);
+  color: var(--pb-silver-light);
+}
+
+/* Enterprise card */
+.pb-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(11, 18, 32, 0.08), 0 1px 2px rgba(11, 18, 32, 0.04);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.pb-card:hover {
+  box-shadow: 0 8px 24px rgba(11, 18, 32, 0.12), 0 2px 8px rgba(11, 18, 32, 0.06);
+  border-color: #cbd5e1;
+}
+
+/* Enterprise table */
+.pb-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.pb-table thead th {
+  background: var(--pb-cloud);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--pb-slate);
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.pb-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s ease;
+}
+.pb-table tbody tr:hover {
+  background: var(--pb-cloud);
+}
+.pb-table tbody td {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+/* Trust strip */
+.pb-trust-strip {
+  background: var(--pb-navy);
+  color: var(--pb-silver);
+  padding: 0.75rem 0;
+}
+.pb-trust-strip .item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Cookie banner — compact, bottom-left, 320px */
+.pb-cookie-banner {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  width: 320px;
+  max-width: calc(100vw - 2rem);
+  background: var(--pb-navy);
+  color: var(--pb-silver);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  box-shadow: 0 8px 32px rgba(11, 18, 32, 0.3);
+  z-index: 100;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Product card states */
+.pb-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.pb-badge-featured { background: #fef3c7; color: #92400e; }
+.pb-badge-discount { background: #ef4444; color: #ffffff; }
+.pb-badge-new { background: #3b82f6; color: #ffffff; }
+.pb-badge-popular { background: #8b5cf6; color: #ffffff; }
+.pb-badge-instant { background: #10b981; color: #ffffff; }
+.pb-badge-out-of-stock { background: #6b7280; color: #ffffff; }
+
+/* Custom scrollbar */
 .custom-scroll {
   scrollbar-width: thin;
   scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
@@ -140,39 +299,28 @@
   background-color: rgba(120, 120, 120, 0.55);
 }
 
-/* PlayBeat brand palette */
-:root {
-  --pb-purple: #6d28d9;       /* deep purple */
-  --pb-purple-light: #8b5cf6;
-  --pb-purple-dark: #4c1d95;
-  --pb-charcoal: #1e1b2e;     /* dark charcoal with hint of purple */
-  --pb-charcoal-light: #2d2a40;
-  --pb-charcoal-deeper: #15131f;
-  --pb-cyan: #06b6d4;         /* subtle cyan accent */
-  --pb-cyan-light: #22d3ee;
-}
-
+/* Legacy purple (kept for CRM compatibility) */
 .pb-gradient-purple {
   background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
 }
 .pb-gradient-charcoal {
-  background: linear-gradient(180deg, #1e1b2e 0%, #15131f 100%);
+  background: linear-gradient(180deg, #0B1220 0%, #111827 100%);
 }
 .pb-glass {
-  background: rgba(45, 42, 64, 0.6);
+  background: rgba(17, 24, 39, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Dialer keypad button */
+/* Dialer keypad (CRM) */
 .pb-key {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.4) 0%, rgba(76, 29, 149, 0.4) 100%);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.8) 0%, rgba(11, 18, 32, 0.8) 100%);
+  border: 1px solid rgba(203, 213, 225, 0.15);
   transition: all 0.15s ease;
 }
 .pb-key:hover {
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.7) 0%, rgba(76, 29, 149, 0.7) 100%);
-  border-color: rgba(139, 92, 246, 0.6);
+  background: linear-gradient(135deg, rgba(244, 197, 66, 0.2) 0%, rgba(212, 165, 50, 0.2) 100%);
+  border-color: rgba(244, 197, 66, 0.4);
   transform: scale(1.03);
 }
 .pb-key:active {
@@ -185,14 +333,4 @@
 }
 .pb-pulse {
   animation: pb-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes pb-ring {
-  0%, 100% { transform: rotate(0); }
-  10%, 30% { transform: rotate(-15deg); }
-  20%, 40% { transform: rotate(15deg); }
-  50% { transform: rotate(0); }
-}
-.pb-ring {
-  animation: pb-ring 1.5s ease-in-out infinite;
 }

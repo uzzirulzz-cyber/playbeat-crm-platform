@@ -216,12 +216,12 @@ export default function ConsoleShell() {
       {/* Sidebar (desktop) */}
       <aside
         className={cn(
-          'hidden md:flex flex-col pb-gradient-charcoal text-zinc-200 border-r border-purple-900/30 transition-all duration-200',
+          'hidden md:flex flex-col pb-gradient-charcoal text-silver border-r border-navy-light transition-all duration-200',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
         {/* Logo */}
-        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-purple-900/30">
+        <div className="h-14 px-4 flex items-center gap-2.5 border-b border-navy-light">
           <div className="w-8 h-8 rounded-lg pb-gradient-purple flex items-center justify-center shrink-0">
             <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M3 5l2-2h4l1 4-2 2c1 3 3 5 6 6l2-2 4 1v4l-2 2c-11 0-17-6-17-17z"/>
@@ -230,7 +230,7 @@ export default function ConsoleShell() {
           {!collapsed && (
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-semibold text-white">PlayBeat CRM</span>
-              <span className="text-[10px] text-purple-300/80 -mt-0.5">Communication Center</span>
+              <span className="text-[10px] text-silver-dark -mt-0.5">Communication Center</span>
             </div>
           )}
         </div>
@@ -243,10 +243,10 @@ export default function ConsoleShell() {
         </nav>
 
         {/* App switcher */}
-        <div className="border-t border-purple-900/30 p-2 space-y-1">
+        <div className="border-t border-navy-light p-2 space-y-1">
           <button
             onClick={() => setAppMode('storefront')}
-            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-zinc-300 hover:bg-purple-900/20 hover:text-white transition-colors',
+            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-silver hover:bg-navy-light hover:text-white transition-colors',
               collapsed && 'justify-center')}
           >
             <Store className="w-4 h-4 shrink-0" />
@@ -254,7 +254,7 @@ export default function ConsoleShell() {
           </button>
           <button
             onClick={() => setAppMode('admin')}
-            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-zinc-300 hover:bg-purple-900/20 hover:text-white transition-colors',
+            className={cn('w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-silver hover:bg-navy-light hover:text-white transition-colors',
               collapsed && 'justify-center')}
             style={{ display: user && ['ADMIN','SUPER_ADMIN'].includes(user.role) ? 'flex' : 'none' }}
           >
@@ -265,8 +265,8 @@ export default function ConsoleShell() {
 
         {/* Connection status */}
         {!collapsed && (
-          <div className="border-t border-purple-900/30 p-3 space-y-1.5 text-xs">
-            <div className="text-[10px] text-purple-300/60 uppercase tracking-wide mb-1">Connection</div>
+          <div className="border-t border-navy-light p-3 space-y-1.5 text-xs">
+            <div className="text-[10px] text-silver-dark uppercase tracking-wide mb-1">Connection</div>
             <StatusRow label="WhatsApp" status={connectionStatus.whatsapp} />
             <StatusRow label="Email" status={connectionStatus.email} />
             <StatusRow label="Telephony" status={connectionStatus.telephony} />
@@ -275,10 +275,10 @@ export default function ConsoleShell() {
         )}
 
         {/* Employee profile */}
-        <div className="border-t border-purple-900/30 p-2">
+        <div className="border-t border-navy-light p-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className={cn('w-full flex items-center gap-2 p-2 rounded-md hover:bg-purple-900/20 transition-colors', collapsed && 'justify-center')}>
+              <button className={cn('w-full flex items-center gap-2 p-2 rounded-md hover:bg-navy-light transition-colors', collapsed && 'justify-center')}>
                 <div className="relative shrink-0">
                   <div className="w-8 h-8 rounded-full pb-gradient-purple flex items-center justify-center text-xs font-semibold text-white">
                     {user.name.charAt(0).toUpperCase()}
@@ -288,7 +288,7 @@ export default function ConsoleShell() {
                 {!collapsed && (
                   <div className="flex-1 text-left min-w-0">
                     <div className="text-xs font-medium text-white truncate">{user.name}</div>
-                    <div className="text-[10px] text-purple-300/70 truncate">{user.role.replace(/_/g, ' ').toLowerCase()}</div>
+                    <div className="text-[10px] text-silver-dark truncate">{user.role.replace(/_/g, ' ').toLowerCase()}</div>
                   </div>
                 )}
               </button>
@@ -328,8 +328,8 @@ export default function ConsoleShell() {
       {mobileNavOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileNavOpen(false)} />
-          <aside className="relative w-64 pb-gradient-charcoal text-zinc-200 flex flex-col">
-            <div className="h-14 px-4 flex items-center justify-between border-b border-purple-900/30">
+          <aside className="relative w-64 pb-gradient-charcoal text-silver flex flex-col">
+            <div className="h-14 px-4 flex items-center justify-between border-b border-navy-light">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg pb-gradient-purple flex items-center justify-center">
                   <svg viewBox="0 0 24 24" className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -402,9 +402,9 @@ export default function ConsoleShell() {
                     <div className="px-3 py-8 text-center text-sm text-zinc-500">No notifications</div>
                   ) : (
                     notifications.slice(0, 20).map((n) => (
-                      <div key={n.id} className={cn('px-3 py-2 border-b border-zinc-100 last:border-0 hover:bg-zinc-50', !n.read && 'bg-purple-50/50')}>
+                      <div key={n.id} className={cn('px-3 py-2 border-b border-zinc-100 last:border-0 hover:bg-zinc-50', !n.read && 'bg-cloud/50')}>
                         <div className="flex items-start gap-2">
-                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mt-1.5 shrink-0" />}
+                          {!n.read && <span className="w-1.5 h-1.5 rounded-full bg-cloud0 mt-1.5 shrink-0" />}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate">{n.title}</div>
                             {n.body && <div className="text-xs text-zinc-600 line-clamp-2">{n.body}</div>}
@@ -481,7 +481,7 @@ function NavGroup({ items, label, collapsed, view, setView }: {
   return (
     <div className="mb-3">
       {!collapsed && (
-        <div className="text-[10px] text-purple-300/50 uppercase tracking-wider px-3 py-1.5 font-medium">{label}</div>
+        <div className="text-[10px] text-silver-dark uppercase tracking-wider px-3 py-1.5 font-medium">{label}</div>
       )}
       {items.map((n) => {
         const Icon = n.icon
@@ -494,8 +494,8 @@ function NavGroup({ items, label, collapsed, view, setView }: {
             className={cn(
               'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
               active
-                ? 'bg-purple-600/30 text-white ring-1 ring-purple-500/40'
-                : 'text-zinc-300 hover:bg-purple-900/20 hover:text-white',
+                ? 'bg-gold/20 text-white ring-1 ring-gold/40'
+                : 'text-silver hover:bg-navy-light hover:text-white',
               collapsed && 'justify-center'
             )}
           >
@@ -511,7 +511,7 @@ function NavGroup({ items, label, collapsed, view, setView }: {
 function StatusRow({ label, status }: { label: string; status: 'CONNECTED' | 'DISCONNECTED' }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-zinc-300">{label}</span>
+      <span className="text-silver">{label}</span>
       {status === 'CONNECTED'
         ? <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/15 text-[10px] px-1.5 py-0">On</Badge>
         : <Badge variant="outline" className="text-zinc-500 border-zinc-700 text-[10px] px-1.5 py-0">Off</Badge>}
