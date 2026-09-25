@@ -10,6 +10,8 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+  // On Vercel/serverless, the database file is written to /tmp which is the only writable directory.
+  // The DATABASE_URL env var should be set to file:/tmp/custom.db on Vercel.
 }
 
 model User {
