@@ -3,8 +3,10 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { getIntegrationStatus } from '@/lib/providers'
 import { ok } from '@/lib/http'
+import { ensureDbInitialized } from '@/lib/db-init'
 
 export async function GET() {
+  await ensureDbInitialized()
   const checks: Record<string, any> = {
     server: 'ok',
     time: new Date().toISOString(),

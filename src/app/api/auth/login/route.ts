@@ -2,9 +2,11 @@ import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { verifyPassword, signToken, setAuthCookie, clearAuthCookie, writeAuditLog, type AuthUser } from '@/lib/auth'
 import { ok, badRequest, serverError } from '@/lib/http'
+import { ensureDbInitialized } from '@/lib/db-init'
 
 export async function POST(req: NextRequest) {
   try {
+    await ensureDbInitialized()
     const body = await req.json()
     const email = String(body.email || '').trim().toLowerCase()
     const password = String(body.password || '')
