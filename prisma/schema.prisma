@@ -90,7 +90,6 @@ model Segment {
 model Campaign {
   id          String    @id @default(cuid())
   name        String
-  account     String    @default("default") // which WhatsApp/Email account sends this (e.g. "default", "jungleofdestiny")
   channel     String    // WHATSAPP | EMAIL | COMBINED
   segmentId   String?
   segmentName String?
@@ -110,7 +109,6 @@ model Campaign {
 
   @@index([status])
   @@index([channel])
-  @@index([account])
 }
 
 model CampaignRecipient {
@@ -214,15 +212,12 @@ model WebhookEvent {
 
 model Integration {
   id        String    @id @default(cuid())
-  provider  String    // WHATSAPP | EMAIL
-  account   String    @default("default") // lets one provider type have multiple connected accounts (e.g. two WhatsApp numbers for two sites)
+  provider  String    @unique // WHATSAPP | EMAIL
   config    String    @default("{}") // JSON with masked secrets
   status    String    @default("DISCONNECTED") // CONNECTED | DISCONNECTED | ERROR
   lastSync  DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
-
-  @@unique([provider, account])
 }
 
 model AuditLog {

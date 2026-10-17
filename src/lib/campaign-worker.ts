@@ -11,34 +11,27 @@ import { parseJSON } from '@/lib/http'
 import { renderTemplate } from '@/lib/template'
 
 const CAMPAIGN_BATCH = 5 // recipients processed per tick
-// One independent tick loop per account, so a second WhatsApp number (e.g. for
-// jungleofdestiny.shop) sends on its own schedule and a slow/failing account
-// never blocks the other's campaigns.
-const tickHandles: Record<string, NodeJS.Timeout> = {}
+let tickHandle: NodeJS.Timeout | null = null
 
-export function startCampaignWorker(account: string = 'default') {
-  if (tickHandles[account]) return
-  tickHandles[account] = setInterval(() => {
-    stepRunningCampaigns(account).catch((e) => {
-      console.error(`campaign worker step failed [account=${account}]:`, e)
+export function startCampaignWorker() {
+  if (tickHandle) return
+  tickHandle = setInterval(() => {
+    stepRunningCampaigns().catch((e) => {
+      console.error('campaign worker step failed:', e)
     })
   }, 4000)
 }
 
-export function stopCampaignWorker(account: string = 'default') {
-  if (tickHandles[account]) {
-    clearInterval(tickHandles[account])
-    delete tickHandles[account]
+export function stopCampaignWorker() {
+  if (tickHandle) {
+    clearInterval(tickHandle)
+    tickHandle = null
   }
 }
 
-export function stopAllCampaignWorkers() {
-  for (const account of Object.keys(tickHandles)) stopCampaignWorker(account)
-}
-
-export async function stepRunningCampaigns(account: string = 'default') {
+export async function stepRunningCampaigns() {
   const running = await db.campaign.findMany({
-    where: { status: 'RUNNING', account },
+    where: { status: 'RUNNING' },
     take: 3,
   })
   for (const campaign of running) {
@@ -97,7 +90,6 @@ async function processRecipient(
         to: recipient.leadPhone,
         body: rendered,
         templateName: campaign.templateId ? await getTemplateName(campaign.templateId) : undefined,
-        account: campaign.account || 'default',
       })
       providerId = r.providerId
     } else if (channel === 'EMAIL' && isEmail && recipient.leadEmail) {

@@ -12,34 +12,9 @@ export async function GET(req: NextRequest) {
   if (!user) return unauthorizedResponse()
   try {
     const rows = await db.integration.findMany()
-    // Build virtual rows for all providers regardless of presence in DB.
-    // For WHATSAPP, return one entry per connected account (default + any
-    // secondary accounts like "jungleofdestiny") instead of a single row.
+    // Build virtual rows for all providers regardless of presence in DB
     const result = []
-    const whatsAppAccounts = Array.from(new Set(['default', ...rows.filter((r) => r.provider === 'WHATSAPP').map((r) => r.account)]))
     for (const provider of ['WHATSAPP', 'EMAIL', 'META_CAPI', 'TELEPHONY']) {
-      if (provider === 'WHATSAPP') {
-        for (const account of whatsAppAccounts) {
-          const row = rows.find((r) => r.provider === 'WHATSAPP' && r.account === account)
-          const status = await getIntegrationStatus('WHATSAPP', account)
-          const config = row ? parseJSON(row.config, {}) : {}
-          const masked: any = {}
-          for (const [k, v] of Object.entries(config)) {
-            if (/token|password|secret|sid/i.test(k)) masked[k] = maskSecret(v as string)
-            else masked[k] = v
-          }
-          result.push({
-            provider,
-            account,
-            status,
-            config: masked,
-            lastSync: row?.lastSync || null,
-            createdAt: row?.createdAt || null,
-            updatedAt: row?.updatedAt || null,
-          })
-        }
-        continue
-      }
       const row = rows.find((r) => r.provider === provider)
       let status: 'CONNECTED' | 'DISCONNECTED'
       if (provider === 'META_CAPI') {
@@ -80,14 +55,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const provider = String(body.provider || '').toUpperCase()
     if (!['WHATSAPP', 'EMAIL', 'META_CAPI', 'TELEPHONY'].includes(provider)) return badRequest('Invalid provider')
-    // account lets WHATSAPP have multiple connected numbers (e.g. "default" for
-    // the main clinic number, "jungleofdestiny" for the second site/worker).
-    // Ignored for providers that don't support multiple accounts.
-    const account = provider === 'WHATSAPP' ? String(body.account || 'default') : 'default'
 
     const incoming = body.config || {}
     // Merge with existing config so masked secrets can be preserved
-    const existing = await db.integration.findUnique({ where: { provider_account: { provider, account } } })
+    const existing = await db.integration.findUnique({ where: { provider } })
     const existingConfig = existing ? parseJSON(existing.config, {}) : {}
     const merged: any = {}
     for (const [k, v] of Object.entries(existingConfig)) {
@@ -100,12 +71,12 @@ export async function POST(req: NextRequest) {
     }
 
     const integration = await db.integration.upsert({
-      where: { provider_account: { provider, account } },
+      where: { provider },
       update: { config: JSON.stringify(merged), status: 'CONNECTED' },
-      create: { provider, account, config: JSON.stringify(merged), status: 'CONNECTED' },
+      create: { provider, config: JSON.stringify(merged), status: 'CONNECTED' },
     })
-    await writeAuditLog({ user, action: 'INTEGRATION_UPDATE', entity: 'Integration', entityId: integration.id, details: `${provider}:${account}`, req })
-    return ok({ integration: { provider: integration.provider, account: integration.account, status: integration.status, updatedAt: integration.updatedAt } })
+    await writeAuditLog({ user, action: 'INTEGRATION_UPDATE', entity: 'Integration', entityId: integration.id, details: provider, req })
+    return ok({ integration: { provider: integration.provider, status: integration.status, updatedAt: integration.updatedAt } })
   } catch (e: any) {
     return serverError(e?.message || 'Failed')
   }

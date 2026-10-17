@@ -61,26 +61,13 @@ const envEmail: EmailConfig | null = (() => {
   }
 })()
 
-export async function getWhatsAppConfig(account: string = 'default'): Promise<WhatsAppConfig | null> {
-  // Only the default account falls back to env vars; secondary accounts (e.g. a
-  // second WhatsApp number for a different site) must be configured via Settings.
-  if (account === 'default' && envWhatsApp) return envWhatsApp
-  const integration = await db.integration.findUnique({ where: { provider_account: { provider: 'WHATSAPP', account } } })
+export async function getWhatsAppConfig(): Promise<WhatsAppConfig | null> {
+  if (envWhatsApp) return envWhatsApp
+  const integration = await db.integration.findUnique({ where: { provider: 'WHATSAPP' } })
   if (!integration) return null
   const config = parseJSON<WhatsAppConfig>(integration.config, {} as WhatsAppConfig)
   if (!config.accessToken || !config.phoneNumberId) return null
-  return account === 'default' ? { ...envWhatsApp, ...config } : config
-}
-
-/** Look up which configured WhatsApp account owns a given Phone Number ID (used by the webhook to route inbound events/status updates to the right account). */
-export async function getWhatsAppAccountByPhoneNumberId(phoneNumberId: string): Promise<string | null> {
-  if (envWhatsApp?.phoneNumberId === phoneNumberId) return 'default'
-  const rows = await db.integration.findMany({ where: { provider: 'WHATSAPP' } })
-  for (const row of rows) {
-    const config = parseJSON<WhatsAppConfig>(row.config, {} as WhatsAppConfig)
-    if (config.phoneNumberId === phoneNumberId) return row.account
-  }
-  return null
+  return { ...envWhatsApp, ...config }
 }
 
 export async function getEmailConfig(): Promise<EmailConfig | null> {
@@ -92,8 +79,8 @@ export async function getEmailConfig(): Promise<EmailConfig | null> {
   return { ...envEmail, ...config }
 }
 
-export async function getIntegrationStatus(provider: 'WHATSAPP' | 'EMAIL', account: string = 'default'): Promise<'CONNECTED' | 'DISCONNECTED'> {
-  if (provider === 'WHATSAPP') return (await getWhatsAppConfig(account)) ? 'CONNECTED' : 'DISCONNECTED'
+export async function getIntegrationStatus(provider: 'WHATSAPP' | 'EMAIL'): Promise<'CONNECTED' | 'DISCONNECTED'> {
+  if (provider === 'WHATSAPP') return (await getWhatsAppConfig()) ? 'CONNECTED' : 'DISCONNECTED'
   return (await getEmailConfig()) ? 'CONNECTED' : 'DISCONNECTED'
 }
 
@@ -103,11 +90,9 @@ export async function sendWhatsAppMessage(params: {
   body: string
   language?: string
   components?: any[]
-  account?: string
 }): Promise<{ providerId: string; status: string }> {
-  const account = params.account || 'default'
-  const config = await getWhatsAppConfig(account)
-  if (!config) throw new Error(`WhatsApp NOT CONNECTED for account "${account}". Configure Business Account ID, Phone Number ID, and Access Token in Settings (or environment variables for the default account).`)
+  const config = await getWhatsAppConfig()
+  if (!config) throw new Error('WhatsApp NOT CONNECTED. Configure Business Account ID, Phone Number ID, and Access Token in Settings or environment variables.')
 
   const url = `https://graph.facebook.com/${config.apiVersion || 'v21.0'}/${config.phoneNumberId}/messages`
   const payload = params.templateName
@@ -147,21 +132,10 @@ export async function sendWhatsAppMessage(params: {
   return { providerId, status: 'SENT' }
 }
 
-export async function verifyWhatsAppWebhookToken(token: string, account: string = 'default'): Promise<boolean> {
-  const config = await getWhatsAppConfig(account)
+export async function verifyWhatsAppWebhookToken(token: string): Promise<boolean> {
+  const config = await getWhatsAppConfig()
   if (!config?.verifyToken) return false
   return token === config.verifyToken
-}
-
-/** Try every configured WhatsApp account's verify token (used when Meta calls the shared webhook URL without an account hint). */
-export async function verifyWhatsAppWebhookTokenAnyAccount(token: string): Promise<string | null> {
-  if (await verifyWhatsAppWebhookToken(token, 'default')) return 'default'
-  const rows = await db.integration.findMany({ where: { provider: 'WHATSAPP' } })
-  for (const row of rows) {
-    if (row.account === 'default') continue
-    if (await verifyWhatsAppWebhookToken(token, row.account)) return row.account
-  }
-  return null
 }
 
 export async function sendEmailMessage(params: {

@@ -66,13 +66,12 @@ export async function POST(req: NextRequest) {
       `CREATE TABLE IF NOT EXISTS "Integration" (
         "id" TEXT NOT NULL PRIMARY KEY,
         "provider" TEXT NOT NULL,
-        "account" TEXT NOT NULL DEFAULT 'default',
         "config" TEXT NOT NULL DEFAULT '{}',
         "status" TEXT NOT NULL DEFAULT 'DISCONNECTED',
         "lastSync" DATETIME,
         "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" DATETIME NOT NULL,
-        CONSTRAINT "Integration_provider_account_key" UNIQUE ("provider", "account")
+        CONSTRAINT "Integration_provider_key" UNIQUE ("provider")
       )`,
       `CREATE TABLE IF NOT EXISTS "Setting" (
         "id" TEXT NOT NULL PRIMARY KEY,
@@ -215,16 +214,6 @@ export async function POST(req: NextRequest) {
 
     for (const sql of statements) {
       try { await db.$executeRawUnsafe(sql) } catch {}
-    }
-
-    // Best-effort migration for installs created before multi-account support:
-    // add the new columns if they don't exist yet. SQLite ALTER TABLE ADD COLUMN
-    // is safe to re-run (wrapped in try/catch) and won't touch existing data.
-    for (const alter of [
-      `ALTER TABLE "Campaign" ADD COLUMN "account" TEXT NOT NULL DEFAULT 'default'`,
-      `ALTER TABLE "Integration" ADD COLUMN "account" TEXT NOT NULL DEFAULT 'default'`,
-    ]) {
-      try { await db.$executeRawUnsafe(alter) } catch {}
     }
 
     // Seed admin user
