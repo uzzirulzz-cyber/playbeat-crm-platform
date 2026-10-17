@@ -5,15 +5,15 @@
 import { NextRequest } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
 import { db } from '@/lib/db'
-import { verifyWhatsAppWebhookToken } from '@/lib/providers'
+import { verifyWhatsAppWebhookTokenAnyAccount, getWhatsAppAccountByPhoneNumberId } from '@/lib/providers'
 import { parseJSON } from '@/lib/http'
 
-/** Get the WhatsApp App Secret from env or DB integration. */
-async function getWhatsAppAppSecret(): Promise<string | null> {
-  // Env var first
+/** Get the WhatsApp App Secret for a given account from env or DB integration. Both accounts can share one Meta App Secret (env), or each account can set its own in Settings. */
+async function getWhatsAppAppSecret(account: string = 'default'): Promise<string | null> {
+  // Env var first (shared across accounts, since most setups use one Meta App)
   if (process.env.WHATSAPP_APP_SECRET) return process.env.WHATSAPP_APP_SECRET
-  // DB integration
-  const integration = await db.integration.findUnique({ where: { provider: 'WHATSAPP' } })
+  // Per-account DB integration
+  const integration = await db.integration.findUnique({ where: { provider_account: { provider: 'WHATSAPP', account } } })
   if (!integration) return null
   const config = parseJSON<any>(integration.config, {})
   return config.appSecret || null
@@ -25,8 +25,10 @@ export async function GET(req: NextRequest) {
   const token = url.searchParams.get('hub.verify_token')
   const challenge = url.searchParams.get('hub.challenge')
   if (mode === 'subscribe' && token && challenge) {
-    const ok = await verifyWhatsAppWebhookToken(token)
-    if (ok) {
+    // Meta calls this same URL for every subscribed WhatsApp account, so try
+    // each configured account's verify token until one matches.
+    const account = await verifyWhatsAppWebhookTokenAnyAccount(token)
+    if (account) {
       return new Response(challenge, { status: 200, headers: { 'Content-Type': 'text/plain' } })
     }
     return new Response('Forbidden', { status: 403 })
@@ -36,10 +38,17 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Get the App Secret for signature verification (if configured)
-    const appSecret = await getWhatsAppAppSecret()
-
     let payload: any
+    let rawBodyForParse: string | null = null
+
+    // Peek at the phone_number_id (unsigned) just to pick which account's App
+    // Secret to verify against — we still verify the signature below before
+    // trusting anything else in the payload.
+    const peekBody = await req.clone().json().catch(() => null)
+    const peekPhoneId = peekBody?.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id
+    const account = peekPhoneId ? (await getWhatsAppAccountByPhoneNumberId(peekPhoneId)) || 'default' : 'default'
+
+    const appSecret = await getWhatsAppAppSecret(account)
 
     if (appSecret) {
       // Clone the request so we can both verify the signature AND parse the body
