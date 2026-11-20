@@ -1,7 +1,7 @@
 // Auto-initialization helper for serverless environments.
 // On first request to a fresh /tmp database, creates tables and seeds admin.
-import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { db } from '@/lib/db'
+import { hashPassword } from '@/lib/auth'
 
 let initialized = false
 let initializing: Promise<void> | null = null
@@ -53,22 +53,12 @@ const TABLE_SQL = [
   `CREATE INDEX IF NOT EXISTS "Notification_userId_idx" ON "Notification"("userId")`,
 ]
 
-let dbInstance: PrismaClient | null = null
-
-function getDb(): PrismaClient {
-  if (!dbInstance) {
-    dbInstance = new PrismaClient()
-  }
-  return dbInstance
-}
-
 /** Auto-initialize the database on first request. Safe to call multiple times. */
 export async function ensureDbInitialized(): Promise<void> {
   if (initialized) return
   if (initializing) return initializing
 
   initializing = (async () => {
-    const db = getDb()
     try {
       const tableCheck = await db.$queryRawUnsafe<any>(
         `SELECT name FROM sqlite_master WHERE type='table' AND name='User'`
@@ -89,21 +79,24 @@ export async function ensureDbInitialized(): Promise<void> {
         ]) {
           try { await db.$executeRawUnsafe(alter) } catch {}
         }
-        const adminEmail = 'admin@playbeat.digital'
-        const existing = await db.user.findUnique({ where: { email: adminEmail } }).catch(() => null)
-        if (!existing) {
-          await db.user.create({
-            data: {
-              email: adminEmail,
-              name: 'Playbeat Admin',
-              password: await bcrypt.hash('playbeat1122', 10),
-              role: 'SUPER_ADMIN',
-              active: true,
-              title: 'CRM Manager',
-              availability: 'ONLINE',
-            },
-          }).catch(() => {})
-        }
+      }
+
+      // Always ensure the platform admin exists (Workers installs ship with a
+      // pre-migrated D1 database, so the table branch above may never fire).
+      const adminEmail = 'admin@playbeat.digital'
+      const existing = await db.user.findUnique({ where: { email: adminEmail } }).catch(() => null)
+      if (!existing) {
+        await db.user.create({
+          data: {
+            email: adminEmail,
+            name: 'Playbeat Admin',
+            password: await hashPassword('playbeat1122'),
+            role: 'SUPER_ADMIN',
+            active: true,
+            title: 'CRM Manager',
+            availability: 'ONLINE',
+          },
+        }).catch(() => {})
       }
       initialized = true
     } catch (e) {

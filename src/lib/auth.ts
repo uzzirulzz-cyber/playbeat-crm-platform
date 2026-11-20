@@ -1,12 +1,13 @@
-import { db } from '@/lib/db'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { SignJWT, jwtVerify } from 'jose'
+import bcrypt from 'bcryptjs' // legacy hash verification only (pre-Workers installs)
 import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
+import { db } from '@/lib/db'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'leadpulse-default-jwt-secret-2026'
+const secretKey = new TextEncoder().encode(JWT_SECRET)
 const TOKEN_COOKIE = 'lp_token'
-const TOKEN_TTL = '7d'
+const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7 // 7d
 
 export interface AuthUser {
   id: string
@@ -15,26 +16,93 @@ export interface AuthUser {
   role: string
 }
 
-export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, 10)
+// ---------------------------------------------------------------------------
+// Password hashing — PBKDF2-SHA256 via Web Crypto (Workers-compatible).
+// Format: pbkdf2$<iterations>$<saltB64>$<hashB64>
+// Legacy bcrypt hashes ($2a/$2b/$2y) from older installs still verify.
+// ---------------------------------------------------------------------------
+const PBKDF2_ITERATIONS = 100000
+const HASH_KEY_BITS = 256
+
+function b64encode(bytes: ArrayBuffer | Uint8Array): string {
+  const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
+  let bin = ''
+  for (let i = 0; i < view.length; i++) bin += String.fromCharCode(view[i])
+  return btoa(bin)
 }
 
-export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(plain, hash)
+function b64decode(value: string): Uint8Array {
+  const bin = atob(value)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
 }
 
-export function signToken(user: AuthUser): string {
-  return jwt.sign(
-    { id: user.id, email: user.email, name: user.name, role: user.role },
-    JWT_SECRET,
-    { expiresIn: TOKEN_TTL }
+async function pbkdf2Derive(password: string, salt: Uint8Array, iterations: number): Promise<ArrayBuffer> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  )
+  return crypto.subtle.deriveBits(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: salt as BufferSource, iterations },
+    keyMaterial,
+    HASH_KEY_BITS
   )
 }
 
-export function verifyToken(token: string): AuthUser | null {
+export async function hashPassword(plain: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const derived = await pbkdf2Derive(plain, salt, PBKDF2_ITERATIONS)
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${b64encode(salt)}$${b64encode(derived)}`
+}
+
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i]
+  return diff === 0
+}
+
+export async function verifyPassword(plain: string, stored: string): Promise<boolean> {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser
-    return decoded
+    if (stored.startsWith('pbkdf2$')) {
+      const [, iterStr, saltB64, hashB64] = stored.split('$')
+      const iterations = parseInt(iterStr, 10) || PBKDF2_ITERATIONS
+      const derived = new Uint8Array(await pbkdf2Derive(plain, b64decode(saltB64), iterations))
+      return timingSafeEqual(derived, b64decode(hashB64))
+    }
+    if (stored.startsWith('$2a$') || stored.startsWith('$2b$') || stored.startsWith('$2y$')) {
+      return await bcrypt.compare(plain, stored)
+    }
+    return false
+  } catch {
+    return false
+  }
+}
+
+// ---------------------------------------------------------------------------
+// JWT — HS256 via jose (Workers-compatible).
+// ---------------------------------------------------------------------------
+export async function signToken(user: AuthUser): Promise<string> {
+  return new SignJWT({ id: user.id, email: user.email, name: user.name, role: user.role })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
+    .sign(secretKey)
+}
+
+export async function verifyTokenAsync(token: string): Promise<AuthUser | null> {
+  try {
+    const { payload } = await jwtVerify(token, secretKey)
+    return {
+      id: String(payload.id || ''),
+      email: String(payload.email || ''),
+      name: String(payload.name || ''),
+      role: String(payload.role || 'VIEWER'),
+    }
   } catch {
     return null
   }
@@ -47,7 +115,7 @@ export async function setAuthCookie(token: string): Promise<void> {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: TOKEN_TTL_SECONDS,
   })
 }
 
@@ -67,7 +135,7 @@ export async function getTokenFromRequest(req: NextRequest): Promise<string | un
 export async function getCurrentUser(req: NextRequest): Promise<AuthUser | null> {
   const token = await getTokenFromRequest(req)
   if (!token) return null
-  const user = verifyToken(token)
+  const user = await verifyTokenAsync(token)
   if (!user) return null
   const dbUser = await db.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.active) return null

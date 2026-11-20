@@ -6,6 +6,10 @@ import { ok } from '@/lib/http'
 import { ensureDbInitialized } from '@/lib/db-init'
 
 export async function GET() {
+  const cors = {
+    'Access-Control-Allow-Origin': 'https://playbeat.digital',
+    'Access-Control-Allow-Methods': 'GET,OPTIONS',
+  }
   await ensureDbInitialized()
   const checks: Record<string, any> = {
     server: 'ok',
@@ -28,5 +32,5 @@ export async function GET() {
   } catch (e: any) {
     checks.email = 'error'
   }
-  return ok(checks)
+  return ok(checks, { headers: cors })
 }

@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "playbeat-crm",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "playbeat-crm",
+      "database_id": "33086727-467b-44b5-a4e7-6da0e151daf6"
+    }
+  ],
+  "rules": [
+    {
+      "type": "ESModule",
+      "globs": ["**/*.wasm"],
+      "fallthrough": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (!valid) return badRequest('Invalid credentials')
 
     const authUser: AuthUser = { id: user.id, email: user.email, name: user.name, role: user.role }
-    const token = signToken(authUser)
+    const token = await signToken(authUser)
     await setAuthCookie(token)
     await db.user.update({ where: { id: user.id }, data: { lastLogin: new Date() } })
     await writeAuditLog({ user: authUser, action: 'LOGIN', entity: 'User', entityId: user.id, req })
